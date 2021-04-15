@@ -5,7 +5,9 @@ const config = require("config");
 const transactionModel = require("./transaction");
 const moment = require('moment');
 const eventModel = require('../event')
-const ticketModel = require('../ticket')
+const ticketModel = require('../ticket');
+const companyKycModel = require('../company_kyc');
+const crypto = require('crypto');
 
 const createTransaction = async (obj) => {
   return transactionModel.insertTransaction(obj);
@@ -13,6 +15,12 @@ const createTransaction = async (obj) => {
 
 const createPaymentTransaction = async (obj) => {
   return transactionModel.insertPaymentTransaction(obj)
+}
+
+
+const sha256 = async (message) => {
+  const hashHex = crypto.createHash('sha256').update(message).digest('hex');
+  return hashHex;
 }
 
 export class EventAPI {
@@ -82,7 +90,10 @@ export class EventAPI {
     });
 
     let _events = await eventModel.selectEvent({ all: true });
+    let _companyKycArr = await companyKycModel.selectCompanyKyc({ all: true });
     _events = _.keyBy(_events, 'event_id')
+    _companyKycArr = _.keyBy(_companyKycArr, 'admin_id')
+    // console.log('_companyKycArr', _companyKycArr);
     if (!total) return [];
 
     for (let i = 0; i < total; i++) {
@@ -90,13 +101,14 @@ export class EventAPI {
         .events(i)
         .call({ from: this.accounts[0] });
       let event_id = data.event_id;
-      // eventDetail = {
-      //   ...eventDetail,
-      //   eventId: i,
-      // };
+      let event = _events[event_id];
+      let company = _companyKycArr[event.admin_id];
+
       events.push({
-        ..._events[event_id],
-        eventId: i, 
+        ...event,
+        company,
+        eventId: i,
+        hash_key: data.hash_key
       });
     }
 
@@ -105,10 +117,12 @@ export class EventAPI {
 
   async getEvent(eventId) {
     let event = await this.contract.methods
-      .getEvent(eventId)
+      .events(eventId)
       .call({ from: this.accounts[0] });
-    if (event) {
-      let _event = eventModel.selectEvent(event.event_id)
+      console.log('event', event)
+    if (!_.isEmpty(event) && event.hash_key !== '') {
+      console.log(event.event_id);
+      let _event = await eventModel.selectEvent(_.toInteger(event.event_id))
       return {
         ..._event,
         eventId: event.eventId
@@ -170,15 +184,15 @@ export class EventAPI {
     let total = await this.contract.methods.totalSupply().call({
       from: this.accounts[0],
     });
-    let ticketsAll = await ticketModel.selectTicket({ all: true });
-    ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
+    // let ticketsAll = await ticketModel.selectTicket({ all: true });
+    // ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
     for (let i = 0; i < total; i++) {
       let data = await this.contract.methods
         .tickets(i)
         .call({ from: this.accounts[0] });
       // let ticketDetail = JSON.parse(data.ticketDetail);
       let ticketDetail = {
-        ...ticketsAll[data.ticket_id],
+        ...JSON.parse(data.detail),
         eventId: _.toInteger(data.eventId),
         ticketId: _.toInteger(data.ticketId),
       };
@@ -201,8 +215,8 @@ export class EventAPI {
     });
 
     let onSellTicketIdArr = [];
-    let ticketsAll = await ticketModel.selectTicket({ all: true });
-    ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
+    // let ticketsAll = await ticketModel.selectTicket({ all: true });
+    // ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
 
     for (let i = 0; i < total; i++) {
       let data = await this.contract.methods
@@ -215,7 +229,7 @@ export class EventAPI {
         .call({ from: this.accounts[0] });
       if (ticket_owner === this.default_account) {
         let ticketDetail = {
-          ...ticketsAll[data.ticket_id],
+          ...JSON.parse(data.detail),
           eventId: _.toInteger(data.eventId),
           ticketId: _.toInteger(data.ticketId),
         };
@@ -232,8 +246,8 @@ export class EventAPI {
     });
 
     let onSellTicketIdArr = [];
-    let ticketsAll = await ticketModel.selectTicket({ all: true });
-    ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
+    // let ticketsAll = await ticketModel.selectTicket({ all: true });
+    // ticketsAll = _.keyBy(ticketsAll, 'ticket_id')
     for (let i = 0; i < total; i++) {
       if (onSellTicketIdArr.length >= totalSelectedTicket) break;
 
@@ -246,8 +260,10 @@ export class EventAPI {
       let ticket_owner = await this.contract.methods
         .ownerOf(data.ticketId)
         .call({ from: this.accounts[0] });
-      let ticketDetail = ticketsAll[data.ticket_id];
-
+      // let ticketDetail = ticketsAll[data.ticket_id];
+      let ticketDetail = {
+        ...JSON.parse(data.detail),
+      }
       if (
         ticket_owner === this.default_account &&
         area === ticketDetail.area &&
@@ -346,8 +362,9 @@ export class EventAPI {
   }
 
   async autoCreateTicketsByEvent(user, tickets, eventId) {
-  
-
+    // console.log('ticket');
+    // let now = moment().unix();
+    // console.log('transaction start >>', now);
     let data = await ticketModel.insertTicketArray({tickets, event_id: eventId, admin_id: user.admin_id})
     let { insertId, affectedRows} = data;
 
@@ -356,17 +373,18 @@ export class EventAPI {
       eventId
     }
 
-    let ticket_id = [];
+    let ticketArr = [];
     for (let i = 0; i < affectedRows; i++) {
-      ticket_id.push(i + insertId);
+      ticketArr.push(JSON.stringify({
+        ticket_id: i + insertId,
+        ...tickets[i],
+      }));
     }
-
-
-    let transaction = this.contract.methods.mintByEvent(ticket_id, eventId);
+    let transaction = this.contract.methods.mintByEvent(ticketArr, eventId);
 
     console.log("auto create ticket step 1 data >>>", tickets);
     console.log("auto create ticket step 2 transaction");
-    return this.signTransaction(
+    await this.signTransaction(
       user,
       transaction,
       function (confirmedMessage) {
@@ -374,17 +392,25 @@ export class EventAPI {
       },
       dataObj
     );
+    // console.log(moment().unix());
+    // console.log('transaction finished >>', moment().unix() - now);
   }
 
   async autoSignEventTransaction(user, eventObj) {
     // let eventObj = JSON.stringify(_eventObj);
+    let encryptString = `${eventObj.name}${eventObj.country}${eventObj.region}${eventObj.district}${eventObj.venue}${eventObj.target}${eventObj.latitude}${eventObj.longitude}${eventObj.tags}${eventObj.categories}${eventObj.email}${eventObj.performer}${eventObj.organization}${eventObj.contact_no}${eventObj.address}${eventObj.short_desc}${eventObj.long_desc}${eventObj.type}${eventObj.start_time}${eventObj.end_time}${eventObj.released_time}${eventObj.close_date}${eventObj.need_kyc}${eventObj.ctime}${eventObj.utime}${eventObj.approval_doc}${eventObj.seat_doc}${eventObj.thumbnail}${eventObj.banner_1}${eventObj.banner_2}`;
+
+    const digestHex = await sha256(JSON.stringify(encryptString));
+
     let transaction = this.contract.methods.createEvent(
       this.accounts[0],
-      eventObj.event_id
+      eventObj.event_id,
+      digestHex
     );
     const dataObj = {
       address: this.accounts[0],
-      event: eventObj.event_id
+      event: eventObj.event_id,
+      hash_value: digestHex
     }
     console.log("step 1 -- post data", eventObj);
     // console.log("step 2 -- transaction");
@@ -411,9 +437,9 @@ export class EventAPI {
       .call({ from: this.accounts[0] });
     if (ticketCount <= 0) return [];
     let tickets = [];
-    let ticketAll = await ticketModel.selectTicket({ all: true });
-    ticketAll = _.keyBy(ticketAll, 'ticket_id')
-    for (let i = 0; i < ticketCount; i++) {
+    // let ticketAll = await ticketModel.selectTicket({ all: true });
+    // ticketAll = _.keyBy(ticketAll, 'ticket_id')
+    for (let i = 0; i < ticketCount; i++) {   
       let ticket = await this.contract.methods
         .marketplaceTicketList(i)
         .call({ from: this.accounts[0] });
@@ -425,7 +451,8 @@ export class EventAPI {
           .tickets(ticket)
           .call({ from: this.accounts[0] });
         tickets.push({
-          ...ticketAll[ticket.ticket_id],
+          ...JSON.parse(ticket.detail),
+          // ...ticketAll[ticket.ticket_id],
           ticketId: _.toInteger(ticket.ticketId),
           eventId: ticket.eventId,
         });
@@ -473,11 +500,10 @@ export class EventAPI {
     return { status: 1 };
   }
 
-  async buyTicketOnMarketplace(user, buyer, ticketId) {
+  async buyTicketOnMarketplace(user, buyer, ticketId, event_id, commission, card, amount) {
     const owner = await this.contract.methods
       .ownerOf(ticketId)
       .call({ from: this.accounts[0] });
-    console.log({ buyer, ticketId });
     if (buyer === owner) {
       return { status: -1, errorMessage: "Buyer is the ticket owner." };
     }
@@ -497,7 +523,13 @@ export class EventAPI {
 
     const dataObj = {
       buyer,
-      ticketId
+      sum_tickets: amount,
+      ticketId,
+      address: buyer,
+      event_id,
+      ticketsId: [ticketId],
+      commission,
+      card
     }
 
     await this.signTransaction(
@@ -506,7 +538,8 @@ export class EventAPI {
       function (confirmedMessage) {
         console.log("event confirmedMessage", confirmedMessage);
       },
-      dataObj
+      dataObj,
+      'buy'
     );
     return { status: 1 };
   }
@@ -536,6 +569,9 @@ export class EventAPI {
   }
 
   async signTransaction(user, transaction, cb, dataObj, type = null) {
+    let now = moment().format('YYMMDDHHmmssSSS');
+    console.log('start', now);
+
     let gas = await transaction.estimateGas({ from: this.default_account });
 
     let nonce = await this.web3.eth.getTransactionCount(this.default_account);
@@ -553,7 +589,6 @@ export class EventAPI {
     );
 
     console.log("sign step 1 -- signedTransaction", signedTransaction);
-
 
     await this.web3.eth
       .sendSignedTransaction(signedTransaction.rawTransaction)
@@ -618,6 +653,11 @@ export class EventAPI {
           }
           await createPaymentTransaction(paymentObj);
         }
+
+        console.log('end time', moment().format('YYMMDDHHmmssSSS'));
+
+        console.log('duration', moment().format('YYMMDDHHmmssSSS') - now);
+
       })
       .on("error", console.error);
   }

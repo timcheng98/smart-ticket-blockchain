@@ -73,6 +73,7 @@ const getEventAll = async (req, res) => {
 const getEvent = async (req, res) => {
   try {
     let result = await eventModel.getEvent(req.query.eventId);
+    console.log('result', result);
     // result = _.keyBy(result, 'event_id')
     res.apiResponse({
       status: 1,
@@ -91,7 +92,7 @@ const createEvent = async (req, res) => {
         status: -1,
       });
     }
-    await eventModel.createEvent(req.user, req.body.event);
+    await eventModel.createEvent({ admin_id: req.body.admin_id }, req.body.event);
     res.apiResponse({
       status: 1,
     });
@@ -157,7 +158,7 @@ const getOnSellTicketsByArea = async (req, res) => {
 const buyTicket = async (req, res) => {
   try {
     let result = await eventModel.buyTicket(
-      req.user,
+      {user_id: req.body.user_id},
       req.body.address,
       req.body.tickets,
       req.body.total,
@@ -177,7 +178,7 @@ const buyTicket = async (req, res) => {
 const getBuyTicketCommission = async (req, res) => {
   try {
     let result = await eventModel.getBuyTicketEstimateGass(
-      req.user,
+      {user_id: req.body.user_id},
       req.body.address,
       req.body.tickets,
       req.body.total
@@ -207,8 +208,8 @@ const createTicket = async (req, res) => {
         status: -1,
       });
     }
-
-    await eventModel.createTicketByEvent(req.user, tickets, eventId);
+    console.log('req.body', req.body);
+    await eventModel.createTicketByEvent({ admin_id: req.body.admin_id }, tickets, eventId);
     res.apiResponse({
       status: 1,
     });
@@ -228,7 +229,7 @@ const sellTicketsOnMarketplace = async (req, res) => {
     }
 
     let result = await eventModel.sellTicketsOnMarketplace(
-      req.user,
+      {user_id: req.body.user_id},
       seller,
       ticketId
     );
@@ -256,9 +257,13 @@ const buyTicketOnMarketplace = async (req, res) => {
       });
     }
     let result = await eventModel.buyTicketOnMarketplace(
-      req.user,
+      {user_id: req.body.user_id},
       buyer,
-      ticketId
+      ticketId,
+      req.body.event_id,
+      req.body.commission,
+      req.body.card,
+      req.body.amount
     );
     if (result.status === -1) {
       return res.apiResponse({
@@ -284,7 +289,7 @@ const getBuyTicketOnMarketplaceCommission = async (req, res) => {
       });
     }
     let result = await eventModel.getBuyTicketOnMarketplaceEstimateGas(
-      req.user,
+      {user_id: req.body.user_id},
       buyer,
       ticketId
     );

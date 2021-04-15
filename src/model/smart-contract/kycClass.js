@@ -1,12 +1,19 @@
 const Web3 = require("web3");
-const Kyc = require('../../../smart-contract/abis/Kyc.json');
+const Kyc = require("../../../smart-contract/abis/Kyc.json");
 const _ = require("lodash");
 const config = require("config");
 const transactionModel = require("./transaction");
+const moment = require("moment");
+const crypto = require("crypto");
 
 const createTransaction = async (obj) => {
   return transactionModel.insertTransaction(obj);
 };
+
+export async function sha256(message) {
+  const hash = crypto.createHash("sha256").update(message).digest("hex");
+  return hash;
+}
 
 export class KycAPI {
   constructor() {
@@ -52,12 +59,27 @@ export class KycAPI {
     }
   }
 
-  async createUserCredential(user, id, hashHex) {
-    const transaction = this.contract.methods.validateUser(id, hashHex);
+  async createUserCredential(user, id, userObj) {
+    const {
+      national_doc,
+      face_doc,
+      birthday,
+      first_name,
+      last_name,
+      national_id,
+      user_id,
+      user_kyc_id
+    } = userObj;
+
+    let encryptString = `${user_id}${user_kyc_id}${national_id}${first_name}${last_name}${birthday}${national_doc}${face_doc}`;
+
+    const digestHex = await sha256(JSON.stringify(encryptString));
+
+    const transaction = this.contract.methods.validateUser(id, digestHex);
     const dataObj = {
       id,
-      hashHex
-    }
+      hashHex: digestHex,
+    };
     return this.signTransaction(
       user,
       transaction,
@@ -95,8 +117,8 @@ export class KycAPI {
   async renewUserCredential(user, id, hashHex) {
     const dataObj = {
       id,
-      hashHex
-    }
+      hashHex,
+    };
     const transaction = this.contract.methods.renewUser(id, hashHex);
     return this.signTransaction(
       user,
@@ -110,8 +132,8 @@ export class KycAPI {
 
   async burnUserCredential(user, id) {
     const dataObj = {
-      id
-    }
+      id,
+    };
     const transaction = this.contract.methods.burnUser(id, hashHex);
     return this.signTransaction(
       user,
@@ -123,12 +145,29 @@ export class KycAPI {
     );
   }
 
-  async createCompanyCredential(user, id, hashHex) {
+  async createCompanyCredential(user, id, company) {
+    let {
+      company_kyc_id,
+      admin_id,
+      company_code,
+      name,
+      owner,
+      description,
+      industry,
+      company_doc,
+      company_size,
+      address,
+      found_date,
+    } = company;
+
+    let encryptString = `${admin_id}${company_kyc_id}${company_code}${name}${owner}${description}${industry}${company_doc}${company_size}${address}${found_date}`;
+
+    const digestHex = await sha256(JSON.stringify(encryptString));
     const dataObj = {
       id,
-      hashHex
-    }
-    const transaction = this.contract.methods.validateCompany(id, hashHex);
+      hashHex: digestHex,
+    };
+    const transaction = this.contract.methods.validateCompany(id, digestHex);
     return this.signTransaction(
       user,
       transaction,
@@ -166,8 +205,8 @@ export class KycAPI {
   async renewCompanyCredential(user, id, hashHex) {
     const dataObj = {
       id,
-      hashHex
-    }
+      hashHex,
+    };
     const transaction = this.contract.methods.renewCompany(id, hashHex);
     return this.signTransaction(
       user,
@@ -181,8 +220,8 @@ export class KycAPI {
 
   async burnCompanyCredential(user, id) {
     const dataObj = {
-      id
-    }
+      id,
+    };
     const transaction = this.contract.methods.burnCompany(id, hashHex);
     return this.signTransaction(
       user,
@@ -195,6 +234,8 @@ export class KycAPI {
   }
 
   async signTransaction(user, transaction, cb, dataObj) {
+    let now = moment().format("YYMMDDHHmmssSSS");
+    console.log("start", now);
     let gas = await transaction.estimateGas({ from: this.default_account });
 
     let nonce = await this.web3.eth.getTransactionCount(this.default_account);
@@ -258,6 +299,10 @@ export class KycAPI {
         };
 
         await createTransaction(obj);
+
+        console.log("end time", moment().format("YYMMDDHHmmssSSS"));
+
+        console.log("duration", moment().format("YYMMDDHHmmssSSS") - now);
       })
       .on("error", console.error);
   }

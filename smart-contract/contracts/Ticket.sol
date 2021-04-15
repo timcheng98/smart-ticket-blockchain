@@ -10,7 +10,6 @@ contract Ticket is ERC721Full, Event {
     uint256 public ticketCount = 0;
     address public ticketContractOwner;
 
-    // mapping(uint256 => address) public ticketApprovals;
     mapping(uint256 => address) public marketplaceTickets;
     uint256[] public marketplaceTicketList;
     uint256 public marketplaceTicketId;
@@ -19,17 +18,19 @@ contract Ticket is ERC721Full, Event {
         ticketContractOwner = msg.sender;
     }
 
-    event CreateTicketsByEvent(uint256[] _tickets, uint256 _eventId);
-    event CreateTickets(uint256[] _tickets);
+    struct Ticket {
+        uint256 eventId;
+        string detail;
+        uint256 ticketId;
+    }
+
+
+    event CreateTicketsByEvent(string[] _tickets, uint256 _eventId);
+    event CreateTickets(string[] _tickets);
     event Transfer(address from, address to, uint256 tokenId);
     event TransferMulti(address from, address to, uint256[] tokenId);
     event Trade(address target, uint256 tokenId);
 
-    struct Ticket {
-        uint256 eventId;
-        uint256 ticket_id;
-        uint256 ticketId;
-    }
 
     function incrementCount() internal {
         ticketCount += 1;
@@ -43,7 +44,7 @@ contract Ticket is ERC721Full, Event {
         return marketplaceTicketId;
     }
 
-    function mint(uint256[] memory _tickets) public {
+    function mint(string[] memory _tickets) public {
         for (uint256 index = 0; index < _tickets.length; index++) {
             _mint(msg.sender, ticketCount);
             tickets[ticketCount] = Ticket(
@@ -58,7 +59,7 @@ contract Ticket is ERC721Full, Event {
         // _ticketExists[_ticket] = true;
     }
 
-    function mintByEvent(uint256[] memory _tickets, uint256 _eventId) public {
+    function mintByEvent(string[] memory _tickets, uint256 _eventId) public {
         for (uint256 index = 0; index < _tickets.length; index++) {
             _mint(msg.sender, ticketCount);
             tickets[ticketCount] = Ticket(
@@ -93,6 +94,7 @@ contract Ticket is ERC721Full, Event {
 
         emit Transfer(_from, _to, _tokenId);
     }
+    
     function sellTicketsOnMarketplace(address seller, uint256 ticketId) public {
         address owner = super.ownerOf(ticketId);
         require(marketplaceTickets[ticketId] != seller, "Ticket already on the marketplace");
@@ -124,32 +126,7 @@ contract Ticket is ERC721Full, Event {
         emit Transfer(from, to, tokenId);
     }
 
-    
-
     function getTicketOnMarketplace(uint256 ticketId) public view returns (address) {
         return marketplaceTickets[ticketId];
     }
-
-    // function approveByOwner(address to, uint256 ticketId) public {
-    //     // address owner = ownerOf(ticketId);
-    //     // require(to != owner, "ERC721: approval to current owner");
-    //     // require(
-    //     //     to == ticketContractOwner,
-    //     //     "ERC721: approve caller is not contract owner"
-    //     // );
-    //     require(
-    //       ticketApprovals[ticketId] == to, "exist"
-    //     );
-    //     ticketApprovals[ticketId] = to;
-    //     // emit Approval(owner, ticketContractOwner, ticketId);
-    // }
-
-    // function getTicketApproved(uint256 ticketId) public view returns (address) {
-    //     // require(
-    //     //     _exists(ticketId),
-    //     //     "ERC721: approved query for nonexistent token"
-    //     // );
-
-    //     return ticketApprovals[ticketId];
-    // }
 }

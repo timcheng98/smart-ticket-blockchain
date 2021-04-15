@@ -90,11 +90,11 @@ const verifyCompanyCredential = async (req, res) => {
 
 const createCompanyCredential = async (req, res) => {
   try {
-    const { admin_id, id, hashHex } = req.body;
+    const { admin_id, id, company } = req.body;
     let result = await kycModel.createCompanyCredential(
       { admin_id },
       id,
-      hashHex
+      company
     );
     res.apiResponse({
       status: 1,

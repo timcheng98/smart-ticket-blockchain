@@ -43,29 +43,9 @@ module.exports = {
       "PRIVATE_KEY": "0x999da71ecd57b14e49e398c7ff3f737295e5f85df17961fc22769fa15eae4089"
     }
   },
-  "AUTH": {
-    "USERNAME": "",
-    "PASSWORD": null
-  },
-  "EMAIL": {
-    "TO": "",
-    "FROM": ""
-  },
-  "SENDGRID_API_KEY": null,
-  "TWILIO": {
-    "accountSid": "",
-    "authToken": "",
-    "from": ""
-  },
-  "FIREBASE": {
-    "DATABASE_URL": "",
-    "SERVICE_ACCOUNT_FILE": __dirname + ""
-  },
   "MEDIA": {
     "PUBLIC": path.join(__dirname, "..", "data/public"),
     "PRIVATE": path.join(__dirname, "..", "data/private"),
-    "QRCODE": path.join(__dirname, "..", "data/private", "qrcode"), // store controller passcode QR Code
-  },
-  "PASSCODE_ENCRYPTION_KEY": "",
-  "API_PASSCODE_EXPIRY_TIME": 15 * 60, // seconds
+    "QRCODE": path.join(__dirname, "..", "data/private", "qrcode"),
+  }
 };

@@ -88,8 +88,8 @@ const verifyUserCredential = async (req, res) => {
 
 const createUserCredential = async (req, res) => {
   try {
-    const { admin_id, id, hashHex } = req.body;
-    let result = await kycModel.createUserCredential({ admin_id }, id, hashHex);
+    const { admin_id, id, user } = req.body;
+    let result = await kycModel.createUserCredential({ admin_id }, id, user);
     res.apiResponse({
       status: 1,
       result,

@@ -4,9 +4,9 @@ const { KycAPI } = require('./kycClass')
 const kycAPI = new KycAPI();
 
 // user
-exports.createUserCredential = async (user, id, hashHex) => {
+exports.createUserCredential = async (user, id, userObj) => {
   await kycAPI.init();
-  return kycAPI.createUserCredential(user, id, hashHex)
+  return kycAPI.createUserCredential(user, id, userObj)
 }
 
 exports.getTotalUserCount = async () => {
@@ -50,9 +50,9 @@ exports.burnUserCredential = async (user, id) => {
 
 // company
 
-exports.createCompanyCredential = async (user, id, hashHex) => {
+exports.createCompanyCredential = async (user, id, company) => {
   await kycAPI.init();
-  return kycAPI.createCompanyCredential(user, id, hashHex)
+  return kycAPI.createCompanyCredential(user, id, company)
 }
 
 exports.getTotalCompanyCount = async () => {

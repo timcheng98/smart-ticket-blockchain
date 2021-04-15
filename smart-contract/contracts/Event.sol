@@ -22,9 +22,10 @@ contract Event {
   struct Event {
     address owner;
     uint256 event_id;
+    string hash_key;
   }
 
-  event Create(address _owner, uint _event_id);
+  event Create(address _owner, uint _event_id, string _hash_key);
 
   modifier onlyOwner() {
     require(eventContractOwner == msg.sender, 'sender is not a owner');
@@ -77,12 +78,12 @@ contract Event {
     return approveId;
   }
 
-  function createEvent(address _owner, uint256 _event_id) public  {
-    events[eventId] = Event(_owner, _event_id);
+  function createEvent(address _owner, uint256 _event_id, string memory _hash_key) public  {
+    events[eventId] = Event(_owner, _event_id, _hash_key);
     eventOwner[eventId] = _owner;
     _ownedEventsCount[_owner].increment();
     _incrementEvent();
-    emit Create(_owner, _event_id);
+    emit Create(_owner, _event_id, _hash_key);
   }
 
   function eventOwnerBalanceOf(address _owner) public view returns (uint256) {

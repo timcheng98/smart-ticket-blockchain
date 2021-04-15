@@ -20,34 +20,27 @@ const cors = require('cors');
 
 const debug = require('debug')('app:web-server');
 
-// passport.serializeUser(function(userData, done) {
-//   console.log(`serializeUser() :: userData >> `, userData);
-//   done(null, userData);
-// });
+passport.serializeUser(function(userData, done) {
+  console.log(`serializeUser() :: userData >> `, userData);
+  done(null, userData);
+});
 
-// passport.deserializeUser(async function(userData, done) {
-//   console.log(`deserializeUser() :: userData >> `, userData);
-//   done(null, userData);
-// });
+passport.deserializeUser(async function(userData, done) {
+  console.log(`deserializeUser() :: userData >> `, userData);
+  done(null, userData);
+});
 
-// passport.use(new Strategy(
-//   function(username, password, cb) {
-//     if (config.get('AUTH.PASSWORD') !== null
-//         && config.get('AUTH.USERNAME') === username
-//         && config.get('AUTH.PASSWORD') === password) {
-//       return cb(null, {
-//         admin_id: 1
-//       });
-//     }
-//     return cb(null, false);
-//   }
-// ));
+passport.use(new Strategy(
+  function(username, password, cb) {
+    return cb(null, { admin_id: 0 });
+  }
+));
 
-// exports.setAuthentication = (strategyName, authFunc) => {
-//   passport.use(strategyName, new CustomStrategy(
-//     authFunc
-//   ));
-// };
+exports.setAuthentication = (strategyName, authFunc) => {
+  passport.use(strategyName, new CustomStrategy(
+    authFunc
+  ));
+};
 
 exports.createServer = function (_opts) {
   const opts = _opts || {};
@@ -68,10 +61,12 @@ exports.createServer = function (_opts) {
   app.use(helmet());
 
   app.use(cookieParser());
-  app.use(bodyParser.urlencoded({
-    extended: true
-  }));
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({limit: '50mb'}));
+  app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
+  // app.use(bodyParser.urlencoded({
+  //   extended: true
+  // }));
+  // app.use(bodyParser.json());
   // app.use(bodyParser.xml());
   // app.use(useragent.express());
 

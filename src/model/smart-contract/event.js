@@ -87,9 +87,9 @@ exports.sellTicketsOnMarketplace = async (user, seller, ticket_id) => {
   return result;
 }
 
-exports.buyTicketOnMarketplace = async (user, buyer, ticket_id) => {
+exports.buyTicketOnMarketplace = async (user, buyer, ticket_id, event_id, commission, card, amount) => {
   await eventAPI.init();
-  let result = await eventAPI.buyTicketOnMarketplace(user, buyer, ticket_id)
+  let result = await eventAPI.buyTicketOnMarketplace(user, buyer, ticket_id, event_id, commission, card, amount)
   return result;
 }
 

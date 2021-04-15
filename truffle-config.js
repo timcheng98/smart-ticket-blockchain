@@ -22,8 +22,8 @@ module.exports = {
       network_id: 3
     }
   },
-  contracts_directory: './src/admin/client/src/smart-contract/contracts/',
-  contracts_build_directory: './src/admin/client/src/smart-contract/abis/',
+  contracts_directory: './smart-contract/contracts/',
+  contracts_build_directory: './smart-contract/abis/',
   compilers: {
     solc: {
       optimizer: {
