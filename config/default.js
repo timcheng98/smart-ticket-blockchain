@@ -6,8 +6,8 @@ module.exports = {
   "DEBUG": "app:*",
   "DEBUG_MODE": false,
   // "STATIC_SERVER_URL": "http://localhost:3000",
-  "STATIC_SERVER_URL": "http://172.16.210.165:3000",
-  "TICKET_VERIFY_URL": "http://192.168.2.155:3002",
+  "STATIC_SERVER_URL": "http://localhost:3001",
+  "TICKET_VERIFY_URL": "http://localhost:3002",
   "API": {
     "PORT": 4000,
     "ORIGIN": "http://localhost:4000",
