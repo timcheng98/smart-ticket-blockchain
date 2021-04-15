@@ -54,6 +54,12 @@ open local.js set up the environment to overide default.js
 
 ------------
 
+##### Setup Smart Contract
+Migrate the smart contract
+
+> $ sudo truffle migrate --reset
+
+------------
 
 
 #### Development
