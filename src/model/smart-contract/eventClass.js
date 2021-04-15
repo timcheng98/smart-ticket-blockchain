@@ -119,9 +119,9 @@ export class EventAPI {
     let event = await this.contract.methods
       .events(eventId)
       .call({ from: this.accounts[0] });
-      console.log('event', event)
+      // console.log('event', event)
     if (!_.isEmpty(event) && event.hash_key !== '') {
-      console.log(event.event_id);
+      // console.log(event.event_id);
       let _event = await eventModel.selectEvent(_.toInteger(event.event_id))
       return {
         ..._event,

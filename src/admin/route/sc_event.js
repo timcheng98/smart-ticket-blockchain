@@ -73,7 +73,7 @@ const getEventAll = async (req, res) => {
 const getEvent = async (req, res) => {
   try {
     let result = await eventModel.getEvent(req.query.eventId);
-    console.log('result', result);
+    // console.log('result', result);
     // result = _.keyBy(result, 'event_id')
     res.apiResponse({
       status: 1,
@@ -208,7 +208,7 @@ const createTicket = async (req, res) => {
         status: -1,
       });
     }
-    console.log('req.body', req.body);
+    // console.log('req.body', req.body);
     await eventModel.createTicketByEvent({ admin_id: req.body.admin_id }, tickets, eventId);
     res.apiResponse({
       status: 1,
